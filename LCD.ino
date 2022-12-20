@@ -112,15 +112,15 @@ void LCD_print_ph4_RUN(int segundero, float pH_actual)
     lcd.print(pH_actual);//Mostrar variable
 }
 /***********************************
-* LCD_print_ph4_SHOW_OFFSET();
-* void LCD_print_ph4_SHOW_OFFSET(void)
+* LCD_print_ph4_SHOW(); 
+* void LCD_print_ph4_SHOW(void)
 ********************************** */
-void LCD_print_ph4_SHOW_OFFSET(float ph4_offset)
+void LCD_print_ph4_SHOW(float ph4_actual)
 {
     lcd.setCursor(0, 0);
-    lcd.print("Offset listo:");
+    lcd.print("Muestra Actual:");
     lcd.setCursor(13, 0);
-    lcd.print(ph4_offset);
+    lcd.print(ph4_actual);
     lcd.setCursor(0, 1);
     lcd.print("UP= si, DOWN= no");
 }
@@ -155,15 +155,15 @@ void LCD_print_ph6_RUN(int segundero, float pH_actual)
     lcd.print(pH_actual);//Mostrar variable
 }
 /***********************************
-* LCD_print_ph6_SHOW_OFFSET();
-* void LCD_print_ph6_SHOW_OFFSET(void)
+* LCD_print_ph6_SHOW();
+* void LCD_print_ph6_SHOW(void)
 ********************************** */
-void LCD_print_ph6_SHOW_OFFSET(float ph6_offset)
+void LCD_print_ph6_SHOW(float ph6_actual)
 {
     lcd.setCursor(0, 0);
-    lcd.print("Offset pH:");
+    lcd.print("Muestra Actual:");
     lcd.setCursor(11, 0);
-    lcd.print(ph6_offset);
+    lcd.print(ph6_actual);
     lcd.setCursor(0, 1);
     lcd.print("UP= si, DOWN= no");
 }

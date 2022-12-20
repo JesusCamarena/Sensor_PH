@@ -69,6 +69,7 @@ enum states
   STATE_CAL_PH6_RUN,
   STATE_CAL_PH6_SHOW,
   STATE_CAL_PH6_SAVE,
+  STATE_CAL_NEW_EQ,
   STATE_CLEAN,
   STATE_RUN,
   STATE_ADD_OFFSET
@@ -86,7 +87,7 @@ float voltage;   //PuntoDecimal 2 variables
 float ph4_actual;
 float ph4_offset = 0;
 float const ph4_real = 4.00;
-const int ph4_addr = 0; //Verificar
+const int   ph4_addr = 0; //Verificar
 //-Valores de ph6
 float ph6_actual;
 float ph6_offset = 0;
@@ -258,6 +259,7 @@ switch (state)
       if (segundero>=10) //Si pasa el tiempo requerido pasa de estado
       {
         //ph4_actual = float (EEPROM.write(ph4_addr, pH_actual));// Guarda el ph actual
+        ph4_actual = pH_actual;
         state = STATE_CAL_PH4_SHOW; //Cambia de estado
         lcd.clear();   //Limpiar
         segundero = 0; //Reinicia el segundero
@@ -270,8 +272,8 @@ switch (state)
   case STATE_CAL_PH4_SHOW:
   // mostrar la ultima medida y la guarda
   // para restarla o sumarla al offset calibrado
-    ph4_offset = ph4_real - ph4_actual;//Calcula el offset
-    LCD_print_ph4_SHOW_OFFSET(ph4_offset);//Imprime en pantalla
+    //ph4_offset = ph4_real - ph4_actual;//Calcula el offset
+    LCD_print_ph4_SHOW(ph4_actual);//Imprime en pantalla
     //-Transition
     lcd_key = read_LCD_buttons(); //Leer botones 
     if (lcd_key == button_up) // button presionado
@@ -293,7 +295,7 @@ switch (state)
 //--Guarda los datos del pH4
   case STATE_CAL_PH4_SAVE:
    //Guardar offset
-   //EEPROM.put(ph4_addr,ph4_offset);
+   //EEPROM.put(ph4_addr,ph4_actual);
     state = STATE_CAL_PH6_CLEAN;
   break;// Fin STATE_CAL_PH4_SHOW
 
@@ -360,8 +362,9 @@ switch (state)
   case STATE_CAL_PH6_SHOW:
   // mostrar la ultima medida y la guarda
   // para restarla o sumarla al offset calibrado
-    ph6_offset = ph6_real - ph6_actual;//Calcula el offset
-    LCD_print_ph6_SHOW_OFFSET(ph6_offset);//Imprime en pantalla
+    //ph6_offset = ph6_real - ph6_actual;//Calcula el offset
+    ph6_actual = pH_actual;
+    LCD_print_ph6_SHOW(ph6_actual);//Imprime en pantalla
     //-Transition
     lcd_key = read_LCD_buttons(); //Leer botones 
     if (lcd_key == button_up) // button presionado
@@ -391,9 +394,13 @@ switch (state)
       LCD_print_sensor_CLEAN(); //Imprime en pantalla
       lcd.clear();//Limpiar
   //-Transitions
+      state = STATE_CAL_NEW_EQ; //Cambia de estado
+  break;// Fin STATE_CLEAN
+//----------------------STATE 16 - New eq. --------------------------//
+  case STATE_CAL_NEW_EQ:
+  //Aplica los datos guardados en la nueva ecuacion 
       state = STATE_RUN; //Cambia de estado
-  break;// STATE_CLEAN
-
+  break;// Fin STATE_CAL_NEW_EQ
 //----------------------STATE 15 - RUN --------------------------//
 //--Muestra el OFFSET de pH
   case STATE_RUN:
@@ -419,9 +426,12 @@ switch (state)
     }//Fin if
 
   break;// Fin STATE_RUN
+
+  //----------------------STATE 16 - Añadir offset-------------------//
   case STATE_ADD_OFFSET:
 
   break;// Fin STATE_ADD_OFFSET
+
   default:
     // statements
   break;
