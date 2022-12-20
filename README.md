@@ -1,43 +1,40 @@
 
-# Lectura de Sensor PH utilizando Arduino UNO
+# Lectura de Sensor PH 
 
 
-## Description
+## Descripcion
 
 Código para el control del sensor de PH FIME - FACMED - UANL
 
-## Web page
+## Página web
 * [Notion](https://www.notion.so/didyde/Sensor-de-PH-7f4f04991f00416da952f725a3de9b77)
 
-## Getting Started
+## Inicio
 
-### Dependencies
+### Materiales
 
 * Arduino UNO
 
-### Installing
+### Instalación
 
 
-### Executing program
+## Ayuda
 
 
-## Help
+## Autores
 
-
-## Authors
-
-## Version History
+## Historial de versiones
 
 * 1.9
 
 * 1.0
     * Initial Release
 
-## License
+## Licencia
 
 This project is licensed under the [NAME HERE] License - see the LICENSE.md file for details
 
-## Acknowledgments
+## Agradecimientos
 
 Inspiration, code snippets, etc.
 * [awesome-readme](https://github.com/matiassingers/awesome-readme)
