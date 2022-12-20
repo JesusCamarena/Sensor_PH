@@ -205,6 +205,8 @@ switch (state)
       //- Borra los offset ya guardados
       //EEPROM.put(ph4_addr, 0);//Addr, Value
       //EEPROM.put(ph6_addr, 0);//Addr, Value
+      ph4_actual = 0;// borra el dato a guardar
+      ph6_actual = 0;// borra el dato a guardar
   //-Transitions
       state = STATE_CAL_PH4_CLEAN; //Cambia de estado
   break;// STATE_ERASE_DATA
