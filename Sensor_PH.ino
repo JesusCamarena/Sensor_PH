@@ -157,7 +157,7 @@ void setup()
 {
   //--Serial
   Serial.begin(9600);  //9600 baudios comunicación
-  Serial.println("Fecha: 24/11/22"); //Test the serial monitor
+  Serial.println("Fecha: 21/12/22"); //Test the serial monitor
   //--LCD
   lcd.begin(16, 2); // Set up the number of columns and rows on the LCD.
 }//Fin setup
@@ -398,12 +398,13 @@ switch (state)
   //-Transitions
       state = STATE_CAL_NEW_EQ; //Cambia de estado
   break;// Fin STATE_CLEAN
-//----------------------STATE 16 - New eq. --------------------------//
+//----------------------STATE 15 - New eq. --------------------------//
   case STATE_CAL_NEW_EQ:
   //Aplica los datos guardados en la nueva ecuacion 
       state = STATE_RUN; //Cambia de estado
   break;// Fin STATE_CAL_NEW_EQ
-//----------------------STATE 15 - RUN --------------------------//
+
+//----------------------STATE 16 - RUN --------------------------//
 //--Muestra el OFFSET de pH
   case STATE_RUN:
     //--Ecuacion de ph
@@ -429,7 +430,7 @@ switch (state)
 
   break;// Fin STATE_RUN
 
-  //----------------------STATE 16 - Añadir offset-------------------//
+  //----------------------STATE 17 - Añadir offset-------------------//
   case STATE_ADD_OFFSET:
 
   break;// Fin STATE_ADD_OFFSET
