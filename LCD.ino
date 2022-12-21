@@ -57,13 +57,10 @@ int read_LCD_buttons(void)
 ************************************/
 void LCD_print_sensor_CLEAN(void)
 {
-  lcd.clear();//limpiar
   lcd.setCursor(0, 0);
   lcd.print("Limpia el sensor");
   lcd.setCursor(0, 1);
-  lcd.print("antes de iniciar");
-  delay(4000); 
-  lcd.clear();//limpiar
+  lcd.print("UP= continuar");
 }
 /***********************************
 * LCD_print_ph4_WAIT();

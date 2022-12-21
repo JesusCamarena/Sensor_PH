@@ -189,7 +189,7 @@ switch (state)
     {
       delay(debounce_time);     //Debounce
       state = STATE_ERASE_DATA; //Cambia de estado
-      lcd.clear();//Limpiar
+      lcd.clear();              //Limpiar
     }  
     else if (lcd_key == button_down) //button presionado
     {
@@ -214,9 +214,15 @@ switch (state)
 //----------------------STATE 4 - PH4 Limpar--------------------------//
   case STATE_CAL_PH4_CLEAN:
       LCD_print_sensor_CLEAN(); //Imprime en pantalla
-      lcd.clear();//Limpiar
-  //-Transitions
+//-Transitions
+    lcd_key = read_LCD_buttons(); //Leer botones 
+    if (lcd_key == button_up)     //button presionado
+    {
+      delay(debounce_time);     //Debounce
       state = STATE_CAL_PH4_WAIT; //Cambia de estado
+      lcd.clear();              //Limpiar
+    }  
+    else state = STATE_CAL_PH4_CLEAN; //Continua en el mismo estado
   break;// STATE_CAL_PH4_CLEAN
 
 //----------------------STATE 5 - PH4 Espera--------------------------//
@@ -304,9 +310,15 @@ switch (state)
 //----------------------STATE 9 - PH6 Limpar--------------//
   case STATE_CAL_PH6_CLEAN:
       LCD_print_sensor_CLEAN(); //Imprime en pantalla
-      lcd.clear();//Limpiar
-  //-Transitions
+//-Transitions
+    lcd_key = read_LCD_buttons(); //Leer botones 
+    if (lcd_key == button_up)     //button presionado
+    {
+      delay(debounce_time);     //Debounce
       state = STATE_CAL_PH6_WAIT; //Cambia de estado
+      lcd.clear();              //Limpiar
+    }  
+    else state = STATE_CAL_PH6_CLEAN; //Continua en el mismo estado
   break;// STATE_CAL_PH6_CLEAN
 
 //----------------------STATE 10 - PH6 Esperar------------//
@@ -394,10 +406,17 @@ switch (state)
 //----------------------STATE 14 - Limpar--------------//
   case STATE_CLEAN:
       LCD_print_sensor_CLEAN(); //Imprime en pantalla
-      lcd.clear();//Limpiar
-  //-Transitions
+//-Transitions
+    lcd_key = read_LCD_buttons(); //Leer botones 
+    if (lcd_key == button_up)     //button presionado
+    {
+      delay(debounce_time);     //Debounce
       state = STATE_CAL_NEW_EQ; //Cambia de estado
-  break;// Fin STATE_CLEAN
+      lcd.clear();              //Limpiar
+    }  
+    else state = STATE_CLEAN; //Continua en el mismo estado
+  break;// FIN STATE_CLEAN
+
 //----------------------STATE 15 - New eq. --------------------------//
   case STATE_CAL_NEW_EQ:
   //Aplica los datos guardados en la nueva ecuacion 
