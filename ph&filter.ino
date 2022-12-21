@@ -37,8 +37,8 @@ void ph_equation(void)
     {
       case COMERCIAL:
         //y = mx + b
-        pH_actual = -5.8752* voltage + 21.799; //Ecuacion actual de ph para sensor comercial
-        pH_actual+= OFFSET; //Compensacion de calibracion 
+        ph_actual = -5.8752* voltage + 21.799; //Ecuacion actual de ph para sensor comercial
+        ph_actual+= offset; //Compensacion de calibracion 
       break;
 
       case PROTOTIPO:
@@ -46,19 +46,19 @@ void ph_equation(void)
         //Rango de 4 a 6.8 pH
         if (voltage >= 2.39 && voltage <= 4.64)
         {
-          pH_actual = -1.7217* voltage + 11.003;
+          ph_actual = -1.7217* voltage + 11.003;
         }
         //Rango de 6.8 a 9 pH
         else if (voltage >= 2.24 && voltage < 2.39)
         {
-          pH_actual = -15.597* voltage + 44.394;
+          ph_actual = -15.597* voltage + 44.394;
         }
         else
         {
-          pH_actual = 0;
+          ph_actual = 0;
         }
         //Compensacion de calibracion 
-        pH_actual+= OFFSET;
+        ph_actual+= offset;
       break;
     }//Fin switch
 }

@@ -19,7 +19,7 @@
     lcd.setCursor(0, 0);//c,f
     lcd.print("Desea calibrar?");
     lcd.setCursor(0, 1);//c,f
-    lcd.print("UP= si, DOWN= no");
+    lcd.print("UP= si  DOWN= no");
   }
 /***********************************
 * Botones _LCD:
@@ -39,16 +39,16 @@ int read_LCD_buttons(void)
   }
 /***********************************
 * LCD_print_ph_Value();
-* void LCD_print_ph_Value(void)
+* void LCD_print_ph_Value(float ph_actual)
 ************************************/
-  void LCD_print_ph_Value(void)
+  void LCD_print_ph_Value(float ph_actual)
   {
     lcd.setCursor(0, 0);
     lcd.print("Valor de Ph");
     lcd.setCursor(0, 1);
     lcd.print("Actual: ");
     lcd.setCursor(7, 1);
-    lcd.print(pH_actual);
+    lcd.print(ph_actual);
     LCDTime = millis();//Actualiza tiempo actual
   } 
 /***********************************
@@ -60,7 +60,7 @@ void LCD_print_sensor_CLEAN(void)
   lcd.setCursor(0, 0);
   lcd.print("Limpia el sensor");
   lcd.setCursor(0, 1);
-  lcd.print("UP= continuar");
+  lcd.print("UP= listo");
 }
 /***********************************
 * LCD_print_ph4_WAIT();
@@ -119,7 +119,7 @@ void LCD_print_ph4_SHOW(float ph4_actual)
     lcd.setCursor(8, 0);
     lcd.print(ph4_actual);
     lcd.setCursor(0, 1);
-    lcd.print("UP= si, DOWN= no");
+    lcd.print("UP= si  DOWN= no");
 }
 /***********************************
 * LCD_print_ph6_WAIT();
@@ -162,7 +162,20 @@ void LCD_print_ph6_SHOW(float ph6_actual)
     lcd.setCursor(7, 0);
     lcd.print(ph6_actual);
     lcd.setCursor(0, 1);
-    lcd.print("UP= si, DOWN= no");
+    lcd.print("UP= si  DOWN= no");
 }
-
+/***********************************
+* LCD_print_ph_OFFSET();
+* void LCD_print_ph_OFFSET(void)
+********************************** */
+void LCD_print_ph_OFFSET(float ph_offset)
+{
+    lcd.setCursor(0, 0);
+    lcd.print("OFFSET:");
+    lcd.setCursor(7, 0);
+    lcd.print(ph_offset);
+    lcd.setCursor(0, 1);
+    lcd.print("RIGHT=++ LEFT=--");
+}
+  
 

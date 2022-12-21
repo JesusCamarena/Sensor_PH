@@ -13,6 +13,6 @@ void serial_print_pH(void)
   Serial.print("Voltage: ");//Palabra voltaje
   Serial.println(voltage,2);
   Serial.print("pH value: ");
-  Serial.println(pH_actual,2);
+  Serial.println(ph_actual,2);
   Serial.println( );
 }

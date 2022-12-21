@@ -79,20 +79,20 @@ enum states
 //-Input
 #define SensorPin A1 //conexion del sensor de PH
 //-Constantes de la ecuacion de pH
-#define OFFSET    0.31 //Compensacion de pH
+#define OFFSET    0 //Compensacion de pH
 //-Resultados
-float pH_actual;
-float voltage;   //PuntoDecimal 2 variables
+float ph_actual;   //Muestra Actual de pH
+float ph_offset;   //Valor actual + offset
+float offset = 0;  //Ver para convertir en costante o guardar en EEPROM
+float voltage;     //PuntoDecimal 2 variables
 //-Valores de ph4
-float ph4_actual;
-float ph4_offset = 0;
-float const ph4_real = 4.00;
-const int   ph4_addr = 0; //Verificar
+float ph4_actual;            //Valor medido en la calibracion 
+float const ph4_real = 4.00; //Valor de muestra buffer
+const int   ph4_addr = 0;    //Verificar
 //-Valores de ph6
-float ph6_actual;
-float ph6_offset = 0;
-float const ph6_real = 6.86;
-const int ph6_addr = 1; //Verificar
+float ph6_actual;            //Valor medido en la calibracion 
+float const ph6_real = 6.86; //Valor de muestra buffer
+const int ph6_addr = 1;      //Verificar
 
 //----------------------Filtro Media movil--------------------------//
 //-Escalar a 0 a 5 volts
@@ -167,297 +167,354 @@ void loop()
 {
   //Toma el tiempo actual desde que se inicio el programa
   unsigned long actualTime = millis();
-//----------------------FSM-----------------------------//
-switch (state) 
-  {
-//----------------------STATE 1 - HELLO--------------------------//
-//--Estado Inicial
-  case STATE_HELLO:
-    LCD_print_HELLO(); //Imprime en pantalla
-//-Transitions
-    state = STATE_CAL;  //Cambia de estado
-    lcd.clear();//Limpiar pantalla
-  break;// Fin STATE_HELLO
-
-//----------------------STATE 2 - ¿Calibrar?--------------------------//
-//--Pregunta si desea calibrar
-  case STATE_CAL:
-    LCD_print_CALIB(); //Imprime en pantalla
-//-Transitions
-    lcd_key = read_LCD_buttons(); //Leer botones 
-    if (lcd_key == button_up)     //button presionado
+  //----------------------FSM-----------------------------//
+  switch (state) 
     {
-      delay(debounce_time);     //Debounce
-      state = STATE_ERASE_DATA; //Cambia de estado
-      lcd.clear();              //Limpiar
-    }  
-    else if (lcd_key == button_down) //button presionado
-    {
-      delay(debounce_time); //Debounce
-      state = STATE_RUN;    //Cambia de estado
-      lcd.clear();          //Limpiar
-    } 
-    else state = STATE_CAL; //Continua en el mismo estado
-  break;// Fin STATE_CAL
-
-//----------------------STATE 3 - Borrar--------------------------//
-  case STATE_ERASE_DATA:
-      //- Borra los offset ya guardados
-      //EEPROM.put(ph4_addr, 0);//Addr, Value
-      //EEPROM.put(ph6_addr, 0);//Addr, Value
-      ph4_actual = 0;// borra el dato a guardar
-      ph6_actual = 0;// borra el dato a guardar
+  //----------------------STATE 1 - HELLO--------------------------//
+  //--Estado Inicial
+    case STATE_HELLO:
+      LCD_print_HELLO(); //Imprime en pantalla
   //-Transitions
-      state = STATE_CAL_PH4_CLEAN; //Cambia de estado
-  break;// STATE_ERASE_DATA
+      state = STATE_CAL;  //Cambia de estado
+      lcd.clear();//Limpiar pantalla
+    break;// Fin STATE_HELLO
 
-//----------------------STATE 4 - PH4 Limpar--------------------------//
-  case STATE_CAL_PH4_CLEAN:
-      LCD_print_sensor_CLEAN(); //Imprime en pantalla
-//-Transitions
-    lcd_key = read_LCD_buttons(); //Leer botones 
-    if (lcd_key == button_up)     //button presionado
-    {
-      delay(debounce_time);     //Debounce
-      state = STATE_CAL_PH4_WAIT; //Cambia de estado
-      lcd.clear();              //Limpiar
-    }  
-    else state = STATE_CAL_PH4_CLEAN; //Continua en el mismo estado
-  break;// STATE_CAL_PH4_CLEAN
-
-//----------------------STATE 5 - PH4 Espera--------------------------//
-//--Espera a que coloquen el pH4
-  case STATE_CAL_PH4_WAIT:
-    LCD_print_ph4_WAIT(); //Imprime en pantalla
-//-Transitions
-    lcd_key = read_LCD_buttons();//Leer botones button presionado
-    if (lcd_key == button_up)//button presionado
-    {
-      delay(debounce_time); //Debounce
-      state = STATE_CAL_PH4_RUN; //Cambio de estado
-      LCD_print_1min_WAIT(); //Imprime en pantalla
-    }  
-    else state = STATE_CAL_PH4_WAIT; //Continua en el mismo estado
-  break;// Fin STATE_CAL_PH4_WAIT
-
-//----------------------STATE 6 - PH4 Medicion--------------------------//
-//--Calcula el pH del momento
-  case STATE_CAL_PH4_RUN:
-    LCD_print_ph4_RUN(segundero, pH_actual);//Imprime en pantalla
-    //--Ecuacion de ph
-    //--Tiempo para tomar muestras 20ms
-    if((actualTime - samplingTime) > SAMPLING_INTERVAL)
-    {
-      ph_equation();// Ecuación para medir el nivel de pH
-      samplingTime = millis();//Actualiza tiempo actual
-    }//Fin if para mostrar muestras
-
-    //--Tiempo para imprimir muestras 800ms
-    if((actualTime - printTime) > PRINT_INTERVAL)
-    {
-      serial_print_pH();   //Imprime el nivel de pH
-      printTime = millis();//Actualiza tiempo actual
-    }//Fin if
-
-//-Transitions
-    if (actualTime >= segundos)// ve cuando pasa un segundo
-    {
-      segundos = actualTime + 1000; //Aumenta un segundo al tiempo actual
-      segundero++;// Incrementa el segundero
-      if (segundero>=10) //Si pasa el tiempo requerido pasa de estado
+  //----------------------STATE 2 - ¿Calibrar?--------------------------//
+  //--Pregunta si desea calibrar
+    case STATE_CAL:
+      LCD_print_CALIB(); //Imprime en pantalla
+  //-Transitions
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_up)     //button presionado
       {
-        //ph4_actual = float (EEPROM.write(ph4_addr, pH_actual));// Guarda el ph actual
-        ph4_actual = pH_actual;
-        state = STATE_CAL_PH4_SHOW; //Cambia de estado
-        lcd.clear();   //Limpiar
-        segundero = 0; //Reinicia el segundero
-      }//Fin if_
-    }//Fin if_
-  break;// Fin STATE_CAL_PH4_RUN
-
-//----------------------STATE 7 - PH4 Mostrar--------------//
-//--Muestra el OFFSET de pH
-  case STATE_CAL_PH4_SHOW:
-  // mostrar la ultima medida y la guarda
-  // para restarla o sumarla al offset calibrado
-    //ph4_offset = ph4_real - ph4_actual;//Calcula el offset
-    LCD_print_ph4_SHOW(ph4_actual);//Imprime en pantalla
-    //-Transition
-    lcd_key = read_LCD_buttons(); //Leer botones 
-    if (lcd_key == button_up) // button presionado
-    {
-      delay(debounce_time); //Debounce
-      state = STATE_CAL_PH4_SAVE; //Cambia de estado
-      lcd.clear();//Limpiar
-    }  
-    else if (lcd_key == button_down) //button presionado
-    {
-      delay(debounce_time); //Debounce
-      state = STATE_CAL_PH4_WAIT; //Cambia de estado
-      lcd.clear();//Limpiar
-    } 
-    else state = STATE_CAL_PH4_SHOW; //Continua en el mismo estado
-  break;// Fin STATE_CAL_PH4_SHOW
-
-//----------------------STATE 8 - pH4 Guardar---------------//
-//--Guarda los datos del pH4
-  case STATE_CAL_PH4_SAVE:
-   //Guardar offset
-   //EEPROM.put(ph4_addr,ph4_actual);
-    state = STATE_CAL_PH6_CLEAN;
-  break;// Fin STATE_CAL_PH4_SHOW
-
-//----------------------STATE 9 - PH6 Limpar--------------//
-  case STATE_CAL_PH6_CLEAN:
-      LCD_print_sensor_CLEAN(); //Imprime en pantalla
-//-Transitions
-    lcd_key = read_LCD_buttons(); //Leer botones 
-    if (lcd_key == button_up)     //button presionado
-    {
-      delay(debounce_time);     //Debounce
-      state = STATE_CAL_PH6_WAIT; //Cambia de estado
-      lcd.clear();              //Limpiar
-    }  
-    else state = STATE_CAL_PH6_CLEAN; //Continua en el mismo estado
-  break;// STATE_CAL_PH6_CLEAN
-
-//----------------------STATE 10 - PH6 Esperar------------//
-//--Espera a que coloquen el pH6
-  case STATE_CAL_PH6_WAIT:
-    LCD_print_ph6_WAIT(); //Imprime en pantalla
-    //-Transition
-    lcd_key = read_LCD_buttons();//Leer botones button presionado
-    if (lcd_key == button_up)//button presionado
-    {
-      delay(debounce_time); //Debounce
-      state = STATE_CAL_PH6_RUN; //Cambio de estado
-      LCD_print_sensor_CLEAN(); //Imprime en pantalla
-      LCD_print_1min_WAIT(); //Imprime en pantalla
-    }  
-    else state = STATE_CAL_PH6_WAIT; //Continua en el mismo estado
-  break;// Fin STATE_CAL_PH6_WAIT
-
-//----------------------STATE 11 - PH6 Medicion--------------------------//
-//--Calcula el pH del momento
-  case STATE_CAL_PH6_RUN:
-    LCD_print_ph6_RUN(segundero, pH_actual);//Imprime en pantalla
-    //--Ecuacion de ph
-    //--Tiempo para tomar muestras 20ms
-    if((actualTime - samplingTime) > SAMPLING_INTERVAL)
-    {
-      ph_equation();// Ecuación para medir el nivel de pH
-      samplingTime = millis();//Actualiza tiempo actual
-    }//Fin if para mostrar muestras
-
-    //--Tiempo para imprimir muestras 800ms
-    if((actualTime - printTime) > PRINT_INTERVAL)
-    {
-      serial_print_pH();   //Imprime el nivel de pH
-      printTime = millis();//Actualiza tiempo actual
-    }//Fin if
-
-  //-Transition
-    if (actualTime >= segundos)// ve cuando pasa un segundo
-    {
-      segundos = actualTime + 1000; //Aumenta un segundo al tiempo actual
-      segundero++;// Incrementa el segundero
-      if (segundero>=10) //Si pasa el tiempo requerido pasa de estado
+        delay(debounce_time);     //Debounce
+        state = STATE_ERASE_DATA; //Cambia de estado
+        lcd.clear();              //Limpiar
+      }  
+      else if (lcd_key == button_down) //button presionado
       {
-        //ph4_actual = float (EEPROM.write(ph4_addr, pH_actual));// Guarda el ph actual
-        state = STATE_CAL_PH6_SHOW; //Cambia de estado
-        lcd.clear(); //Limpiar
-        segundero = 0; //Reinicia el segundero
-      }//Fin if_
-    }//Fin if_
-  break;// Fin STATE_CAL_PH6_RUN
+        delay(debounce_time); //Debounce
+        state = STATE_RUN;    //Cambia de estado
+        lcd.clear();          //Limpiar
+      } 
+      else state = STATE_CAL; //Continua en el mismo estado
+    break;// Fin STATE_CAL
 
-//----------------------STATE 12 - PH6 Mostrar---------------------//
-//--Muestra el OFFSET de pH
-  case STATE_CAL_PH6_SHOW:
-  // mostrar la ultima medida y la guarda
-  // para restarla o sumarla al offset calibrado
-    //ph6_offset = ph6_real - ph6_actual;//Calcula el offset
-    ph6_actual = pH_actual;
-    LCD_print_ph6_SHOW(ph6_actual);//Imprime en pantalla
-    //-Transition
-    lcd_key = read_LCD_buttons(); //Leer botones 
-    if (lcd_key == button_up) // button presionado
-    {
-      delay(debounce_time); //Debounce
-      state = STATE_CAL_PH6_SAVE; //Cambia de estado
-      lcd.clear();//Limpiar
-    }  
-    else if (lcd_key == button_down) //button presionado
-    {
-      delay(debounce_time); //Debounce
-      state = STATE_CAL_PH6_WAIT; //Cambia de estado
-      lcd.clear();//Limpiar
-    } 
-    else state = STATE_CAL_PH6_SHOW; //Continua en el mismo estado
-  break;// Fin STATE_CAL_PH6_SHOW
+  //----------------------STATE 3 - Borrar--------------------------//
+    case STATE_ERASE_DATA:
+        //- Borra los offset ya guardados
+        //EEPROM.put(ph4_addr, 0);//Addr, Value
+        //EEPROM.put(ph6_addr, 0);//Addr, Value
+        ph4_actual = 0;// borra el dato a guardar
+        ph6_actual = 0;// borra el dato a guardar
+    //-Transitions
+        state = STATE_CAL_PH4_CLEAN; //Cambia de estado
+    break;// STATE_ERASE_DATA
 
-//----------------------STATE 13 PH6 Guardar--------------------------//
-//--Guarda los datos del pH6
-  case STATE_CAL_PH6_SAVE:
-    //EEPROM.put(ph6_addr,ph6_offset);
-    state = STATE_CLEAN;
-  break;// Fin STATE_CAL_PH6_SAVE
+  //----------------------STATE 4 - pH4 Limpar--------------------------//
+    case STATE_CAL_PH4_CLEAN:
+        LCD_print_sensor_CLEAN(); //Imprime en pantalla
+  //-Transitions
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_up)     //button presionado
+      {
+        delay(debounce_time);     //Debounce
+        state = STATE_CAL_PH4_WAIT; //Cambia de estado
+        lcd.clear();              //Limpiar
+      }  
+      else state = STATE_CAL_PH4_CLEAN; //Continua en el mismo estado
+    break;// STATE_CAL_PH4_CLEAN
 
-//----------------------STATE 14 - Limpar--------------//
-  case STATE_CLEAN:
-      LCD_print_sensor_CLEAN(); //Imprime en pantalla
-//-Transitions
-    lcd_key = read_LCD_buttons(); //Leer botones 
-    if (lcd_key == button_up)     //button presionado
+  //----------------------STATE 5 - pH4 Espera--------------------------//
+  //--Espera a que coloquen el pH4
+    case STATE_CAL_PH4_WAIT:
+      LCD_print_ph4_WAIT(); //Imprime en pantalla
+  //-Transitions
+      lcd_key = read_LCD_buttons();//Leer botones button presionado
+      if (lcd_key == button_up)//button presionado
+      {
+        delay(debounce_time); //Debounce
+        state = STATE_CAL_PH4_RUN; //Cambio de estado
+        LCD_print_1min_WAIT(); //Imprime en pantalla
+      }  
+      else state = STATE_CAL_PH4_WAIT; //Continua en el mismo estado
+    break;// Fin STATE_CAL_PH4_WAIT
+
+  //----------------------STATE 6 - pH4 Medicion--------------------------//
+  //--Calcula el pH del momento
+    case STATE_CAL_PH4_RUN:
+      LCD_print_ph4_RUN(segundero, ph_actual);//Imprime en pantalla
+      //--Ecuacion de ph
+      //--Tiempo para tomar muestras 20ms
+      if((actualTime - samplingTime) > SAMPLING_INTERVAL)
+      {
+        ph_equation();// Ecuación para medir el nivel de pH
+        samplingTime = millis();//Actualiza tiempo actual
+      }//Fin if para mostrar muestras
+
+      //--Tiempo para imprimir muestras 800ms
+      if((actualTime - printTime) > PRINT_INTERVAL)
+      {
+        serial_print_pH();   //Imprime el nivel de pH
+        printTime = millis();//Actualiza tiempo actual
+      }//Fin if
+
+  //-Transitions
+  //BUTTON
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_down)   //button presionado
+      {
+        delay(debounce_time);       //Debounce
+        state = STATE_CAL_PH4_WAIT; //Cambia de estado
+        lcd.clear();                //Limpiar
+        segundero = 0;              //Reinicia el segundero
+      }  
+    //TIMER 
+        else if (actualTime >= segundos)//ve cuando pasa un segundo
+        {
+          segundos = actualTime + 1000; //Aumenta un segundo al tiempo actual
+          segundero++;                  //Incrementa el segundero
+          if (segundero>=10)            //Si pasa el tiempo requerido pasa de estado
+          {
+            //ph4_actual = float (EEPROM.write(ph4_addr, pH_actual));// Guarda el ph actual
+            ph4_actual = ph_actual;
+            state = STATE_CAL_PH4_SHOW; //Cambia de estado
+            lcd.clear();                //Limpiar
+            segundero = 0;              //Reinicia el segundero
+          }//Fin if_
+        }//Fin if_
+          else
+          {
+            state = STATE_CAL_PH4_RUN; //Continua en el mismo estado
+          }//Fin else
+    break;// Fin STATE_CAL_PH4_RUN
+
+  //----------------------STATE 7 - pH4 Mostrar--------------//
+  //--Muestra el OFFSET de pH
+    case STATE_CAL_PH4_SHOW:
+    // mostrar la ultima medida y la guarda
+    // para restarla o sumarla al offset calibrado
+      //ph4_offset = ph4_real - ph4_actual;//Calcula el offset
+      LCD_print_ph4_SHOW(ph4_actual);//Imprime en pantalla
+      //-Transition
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_up) // button presionado
+      {
+        delay(debounce_time); //Debounce
+        state = STATE_CAL_PH4_SAVE; //Cambia de estado
+        lcd.clear();//Limpiar
+      }  
+      else if (lcd_key == button_down) //button presionado
+      {
+        delay(debounce_time); //Debounce
+        state = STATE_CAL_PH4_WAIT; //Cambia de estado
+        lcd.clear();//Limpiar
+      } 
+      else state = STATE_CAL_PH4_SHOW; //Continua en el mismo estado
+    break;// Fin STATE_CAL_PH4_SHOW
+
+  //----------------------STATE 8 - pH4 Guardar---------------//
+  //--Guarda los datos del pH4
+    case STATE_CAL_PH4_SAVE:
+    //Guardar offset
+    //EEPROM.put(ph4_addr,ph4_actual);
+      state = STATE_CAL_PH6_CLEAN;
+    break;// Fin STATE_CAL_PH4_SHOW
+
+  //----------------------STATE 9 - PH6 Limpar--------------//
+    case STATE_CAL_PH6_CLEAN:
+        LCD_print_sensor_CLEAN(); //Imprime en pantalla
+  //-Transitions
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_up)     //button presionado
+      {
+        delay(debounce_time);     //Debounce
+        state = STATE_CAL_PH6_WAIT; //Cambia de estado
+        lcd.clear();              //Limpiar
+      }  
+      else state = STATE_CAL_PH6_CLEAN; //Continua en el mismo estado
+    break;// STATE_CAL_PH6_CLEAN
+
+  //----------------------STATE 10 - PH6 Esperar------------//
+  //--Espera a que coloquen el pH6
+    case STATE_CAL_PH6_WAIT:
+      LCD_print_ph6_WAIT();        //Imprime en pantalla
+      //-Transition
+      lcd_key = read_LCD_buttons();//Leer botones button presionado
+      if (lcd_key == button_up)    //button presionado
+      {
+        delay(debounce_time);      //Debounce
+        state = STATE_CAL_PH6_RUN; //Cambio de estado
+        LCD_print_1min_WAIT();     //Imprime en pantalla
+      }  
+      else state = STATE_CAL_PH6_WAIT; //Continua en el mismo estado
+    break;// Fin STATE_CAL_PH6_WAIT
+
+  //----------------------STATE 11 - PH6 Medicion--------------------------//
+  //--Calcula el pH del momento
+    case STATE_CAL_PH6_RUN:
+      LCD_print_ph6_RUN(segundero, ph_actual);//Imprime en pantalla
+      //--Ecuacion de ph
+      //--Tiempo para tomar muestras 20ms
+      if((actualTime - samplingTime) > SAMPLING_INTERVAL)
+      {
+        ph_equation();// Ecuación para medir el nivel de pH
+        samplingTime = millis();//Actualiza tiempo actual
+      }//Fin if para mostrar muestras
+
+      //--Tiempo para imprimir muestras 800ms
+      if((actualTime - printTime) > PRINT_INTERVAL)
+      {
+        serial_print_pH();   //Imprime el nivel de pH
+        printTime = millis();//Actualiza tiempo actual
+      }//Fin if
+
+  //-Transitions
+  //BUTTON
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_down)   //button presionado
+      {
+        delay(debounce_time);       //Debounce
+        state = STATE_CAL_PH6_WAIT; //Cambia de estado
+        lcd.clear();                //Limpiar
+        segundero = 0;              //Reinicia el segundero
+      }  
+    //TIMER 
+        else if (actualTime >= segundos)// ve cuando pasa un segundo
+        {
+          segundos = actualTime + 1000; //Aumenta un segundo al tiempo actual
+          segundero++;                  //Incrementa el segundero
+          if (segundero>=10)            //Si pasa el tiempo requerido pasa de estado
+          {
+            //ph4_actual = float (EEPROM.write(ph4_addr, pH_actual));// Guarda el ph actual
+            ph6_actual = ph_actual;
+            state = STATE_CAL_PH6_SHOW; //Cambia de estado
+            lcd.clear();                //Limpiar
+            segundero = 0;              //Reinicia el segundero
+          }//Fin if_
+        }//Fin if_
+          else
+          {
+            state = STATE_CAL_PH6_RUN; //Continua en el mismo estado
+          }//Fin else
+    break;// Fin STATE_CAL_PH6_RUN
+
+  //----------------------STATE 12 - PH6 Mostrar---------------------//
+  //--Muestra el OFFSET de pH
+    case STATE_CAL_PH6_SHOW:
+    // mostrar la ultima medida y la guarda
+    // para restarla o sumarla al offset calibrado
+      //ph6_offset = ph6_real - ph6_actual;//Calcula el offset
+      LCD_print_ph6_SHOW(ph6_actual);//Imprime en pantalla
+      //-Transition
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_up) // button presionado
+      {
+        delay(debounce_time);       //Debounce
+        state = STATE_CAL_PH6_SAVE; //Cambia de estado
+        lcd.clear();//Limpiar
+      }  
+        else if (lcd_key == button_down) //button presionado
+        {
+          delay(debounce_time); //Debounce
+          state = STATE_CAL_PH6_WAIT; //Cambia de estado
+          lcd.clear();//Limpiar
+        } 
+          else state = STATE_CAL_PH6_SHOW; //Continua en el mismo estado
+    break;// Fin STATE_CAL_PH6_SHOW
+
+  //----------------------STATE 13 PH6 Guardar--------------------------//
+  //--Guarda los datos del pH6
+    case STATE_CAL_PH6_SAVE:
+      //EEPROM.put(ph6_addr,ph6_offset);
+      state = STATE_CLEAN;
+    break;// Fin STATE_CAL_PH6_SAVE
+
+  //----------------------STATE 14 - Limpar--------------//
+    case STATE_CLEAN:
+        LCD_print_sensor_CLEAN(); //Imprime en pantalla
+  //-Transitions
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_up)     //button presionado
+      {
+        delay(debounce_time);     //Debounce
+        state = STATE_CAL_NEW_EQ; //Cambia de estado
+        lcd.clear();              //Limpiar
+      }  
+      else state = STATE_CLEAN; //Continua en el mismo estado
+    break;// FIN STATE_CLEAN
+
+  //----------------------STATE 15 - New eq. --------------------------//
+    case STATE_CAL_NEW_EQ:
+    //Aplica los datos guardados en la nueva ecuacion 
+    //y=mx+b
+    //mapping
+        state = STATE_RUN; //Cambia de estado
+    break;// Fin STATE_CAL_NEW_EQ
+
+  //----------------------STATE 16 - RUN --------------------------//
+  //--Muestra el OFFSET de pH
+    case STATE_RUN:
+      //--Ecuacion de ph
+      //--Tiempo para tomar muestras 20ms
+      if((actualTime - samplingTime) > SAMPLING_INTERVAL)
+      {
+        ph_equation();// Ecuación para medir el nivel de pH
+        samplingTime = millis();//Actualiza tiempo actual
+      }//Fin if para mostrar muestras
+
+      //--Tiempo para imprimir muestras 800ms
+      if((actualTime - printTime) > PRINT_INTERVAL)
+      {
+        serial_print_pH();   //Imprime el nivel de pH
+        printTime = millis();//Actualiza tiempo actual
+      }//Fin if
+
+      //--Tiempo para imprimir en LCD
+      if((actualTime - LCDTime) > LCD_INTERVAL)
+      {
+        LCD_print_ph_Value(ph_actual);
+      }//Fin if
+      
+  //-Transitions
+      lcd_key = read_LCD_buttons(); //Leer botones 
+      if (lcd_key == button_down)   //button presionado
+      {
+        delay(debounce_time);      //Debounce
+        state = STATE_ADD_OFFSET;  //Cambia de estado
+        lcd.clear();               //Limpiar
+      }  
+      else state = STATE_CAL_NEW_EQ; //Continua en el mismo estado
+    break;// Fin STATE_RUN
+
+    //----------------------STATE 17 - Añadir offset-------------------//
+    case STATE_ADD_OFFSET:
+    LCD_print_ph_OFFSET(offset);   //Imprime el OFFSET
+    lcd_key = read_LCD_buttons();  //Leer botones 
+    if (lcd_key == button_right)   //button presionado
     {
       delay(debounce_time);     //Debounce
-      state = STATE_CAL_NEW_EQ; //Cambia de estado
-      lcd.clear();              //Limpiar
-    }  
-    else state = STATE_CLEAN; //Continua en el mismo estado
-  break;// FIN STATE_CLEAN
+      offset+=0.01;             //Incrementa
+    }
+      else if (lcd_key == button_left)   //button presionado
+      {
+        delay(debounce_time);      //Debounce
+        offset-=0.01;              //Decrementa
+        if (offset<=0) offset = 0; //Rengo para que no baje de 0
+      }  
+        else if (lcd_key == button_up||lcd_key == button_down)   //button presionado
+          {
+            delay(debounce_time);     //Debounce
+            state = STATE_CAL_NEW_EQ; //Cambia de estado
+            lcd.clear();              //Limpiar
+          }  
+          else state = STATE_ADD_OFFSET; //Continua en el mismo estado
+    break;// Fin STATE_ADD_OFFSET
 
-//----------------------STATE 15 - New eq. --------------------------//
-  case STATE_CAL_NEW_EQ:
-  //Aplica los datos guardados en la nueva ecuacion 
-      state = STATE_RUN; //Cambia de estado
-  break;// Fin STATE_CAL_NEW_EQ
-
-//----------------------STATE 16 - RUN --------------------------//
-//--Muestra el OFFSET de pH
-  case STATE_RUN:
-    //--Ecuacion de ph
-    //--Tiempo para tomar muestras 20ms
-    if((actualTime - samplingTime) > SAMPLING_INTERVAL)
-    {
-      ph_equation();// Ecuación para medir el nivel de pH
-      samplingTime = millis();//Actualiza tiempo actual
-    }//Fin if para mostrar muestras
-
-    //--Tiempo para imprimir muestras 800ms
-    if((actualTime - printTime) > PRINT_INTERVAL)
-    {
-      serial_print_pH();   //Imprime el nivel de pH
-      printTime = millis();//Actualiza tiempo actual
-    }//Fin if
-
-    //--Tiempo para imprimir en LCD
-    if((actualTime - LCDTime) > LCD_INTERVAL)
-    {
-      LCD_print_ph_Value();
-    }//Fin if
-
-  break;// Fin STATE_RUN
-
-  //----------------------STATE 17 - Añadir offset-------------------//
-  case STATE_ADD_OFFSET:
-
-  break;// Fin STATE_ADD_OFFSET
-
-  default:
-    // statements
-  break;
-}//Fin cases estados
+    default:
+      // statements
+    break;
+  }//Fin cases estados
 }//Fin loop
 
 //----------------------FUNCTIONS()--------------------------//
